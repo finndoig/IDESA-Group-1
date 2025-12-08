@@ -1,77 +1,56 @@
-import sys
-import os
+import tkinter as tk
 
-try:
-    import tty
-    import termios
-    _IS_UNIX = True
-except ImportError:
-    import msvcrt
-    _IS_UNIX = False
+# Simple tkinter GUI: shows current arrow while pressed, 'No Input' when released.
 
-def get_key():
-    """Get a single key press from user input (cross-platform).
+KEY_MAP = {
+    'Up': 'Forward',
+    'Down': 'Backwards',
+    'Left': 'Left',
+    'Right': 'Right',
+}
 
-    On Unix this uses `tty`/`termios`. On Windows it uses `msvcrt.getch()`.
-    For consistency with the original code, Windows arrow keys are mapped to
-    the same final characters used by ANSI escape sequences: 'A','B','C','D'.
-    """
-    if _IS_UNIX:
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
-        try:
-            tty.setraw(fd)
-            ch = sys.stdin.read(1)
-            return ch
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-    else:
-        ch = msvcrt.getch()
-        # Arrow and function keys on Windows return a prefix (b'\x00' or b'\xe0')
-        if ch in (b"\x00", b"\xe0"):
-            seq = msvcrt.getch()
-            mapping = {b'H': 'A', b'P': 'B', b'M': 'C', b'K': 'D'}
-            return mapping.get(seq, '')
-        else:
-            try:
-                return ch.decode('utf-8')
-            except Exception:
-                return ''
 
 def main():
-    """Main loop to handle arrow key input."""
-    print("Press arrow keys (Up/Down/Left/Right) or 'q' to quit:")
-    
-    while True:
-        try:
-            ch = get_key()
+    root = tk.Tk()
+    root.title('Arrow Input')
 
-            if ch == 'q':
-                print("Exiting...")
+    label = tk.Label(root, text='No Input', font=('Helvetica', 48), width=18)
+    label.pack(padx=20, pady=20)
+
+    # Keep track of which arrow keys are currently held down
+    pressed = set()
+
+    def show_for_key(key_sym):
+        label.config(text=KEY_MAP.get(key_sym, 'No Input'))
+
+    def on_press(event):
+        key = event.keysym
+        if key in KEY_MAP:
+            pressed.add(key)
+            show_for_key(key)
+        elif key.lower() == 'q':
+            root.destroy()
+
+    def on_release(event):
+        key = event.keysym
+        if key in pressed:
+            pressed.discard(key)
+
+        # If another arrow is still held, show that one; otherwise 'No Input'
+        for k in ('Up', 'Down', 'Left', 'Right'):
+            if k in pressed:
+                show_for_key(k)
                 break
+        else:
+            label.config(text='No Input')
 
-            # Unix: arrow keys come as escape sequences '\x1b', '[', 'A' etc.
-            if ch == '\x1b':
-                next1 = get_key()
-                next2 = get_key()
-                code = next2
-            else:
-                # On Windows we return 'A','B','C','D' directly for arrows
-                code = ch
+    # Bind to all key events so the window responds even when focus is elsewhere
+    root.bind_all('<KeyPress>', on_press)
+    root.bind_all('<KeyRelease>', on_release)
 
-            if code == 'A':
-                print("Forward")
-            elif code == 'B':
-                print("Backwards")
-            elif code == 'C':
-                print("Right")
-            elif code == 'D':
-                print("Left")
-            else:
-                print("no input")
-                
-        except (KeyboardInterrupt, EOFError):
-            break
+    # Ensure the window has focus to receive key events in many environments
+    root.after(100, lambda: root.focus_force())
 
-if __name__ == "__main__":
+    root.mainloop()
+if __name__ == '__main__':
     main()
