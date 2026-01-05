@@ -54,6 +54,11 @@ def yaw_from_rvec(rvec: np.ndarray) -> float:
     yaw = np.arctan2(R[1, 0], R[0, 0])
     return yaw
 
+def marker_pixel_centre(corners_4x2: np.ndarray) -> tuple[float, float]:
+    # corners come as (4,2)
+    c = corners_4x2.mean(axis=0)
+    return float(c[0]), float(c[1])
+
 
 # Execute this continuously
 while(True):
@@ -79,6 +84,7 @@ while(True):
     # Initialize dictionaries to hold marker positions and orientations
     marker_xy = {}
     marker_yaw = {}
+    marker_px = {}
 
     # If there are markers detected, draw the axis for each marker
     if ids is not None:
@@ -99,6 +105,11 @@ while(True):
                 # defensive: skip if shapes are unexpected
                 continue
             cv2.drawFrameAxes(out, CM, dist_coef, rvec, tvec, 10)
+
+            # Pixel centre for debug drawing
+            c = corners[i][0]  # (4,2)
+            marker_px[marker_id] = marker_pixel_centre(c)   
+
             # log marker id and translation vector with limited precision
             logging.info("Detected marker id=%d, tvec=%s", int(marker_id), np.array2string(tvec, precision=3, separator=', '))
 
@@ -122,6 +133,21 @@ while(True):
                     "Robot->Target %d: distance=%.3f m, bearing=%.2f deg (theta_r=%.2f deg)",
                     tid, distance, np.degrees(bearing), np.degrees(theta_r)
                 )
+
+                # Draw line and text on the output image
+                if ROBOT_ID in marker_px and tid in marker_px:
+                    xrp, yrp = marker_px[ROBOT_ID]
+                    xtp, ytp = marker_px[tid]
+                    cv2.line(out, (int(xrp), int(yrp)), (int(xtp), int(ytp)), (255, 255, 255), 2)
+                    cv2.putText(
+                        out,
+                        f"d={distance:.2f}m b={np.degrees(bearing):.0f}deg",
+                        (int(xtp) + 10, int(ytp) - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.6,
+                        (255, 255, 255),
+                        2
+                    )
 
 
     # Apply Canny edge detection to the gray image
