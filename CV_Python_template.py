@@ -9,7 +9,7 @@ import cv2.aruco as aruco
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
-Camera=np.load('Sample_Calibration.npz') #Load the camera calibration values 
+Camera=np.load('Calibration.npz') #Load the camera calibration values 
 CM=Camera['CM'] #camera matrix 
 dist_coef=Camera['dist_coef']# distortion coefficients from the camera 
 
@@ -19,7 +19,7 @@ pa = aruco.DetectorParameters()
 
 # Select the first camera (0) that is connected to the machine
 # in Laptops should be the build-in camera
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
  
 # Set the width and heigth of the camera to 1920x1080
 cap.set(3,1920)
