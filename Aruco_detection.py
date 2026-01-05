@@ -13,6 +13,12 @@ Camera=np.load('Calibration.npz') #Load the camera calibration values
 CM=Camera['CM'] #camera matrix 
 dist_coef=Camera['dist_coef']# distortion coefficients from the camera 
 
+# Define the ArUco marker parameters
+ROBOT_ID = 0                 # <-- change this to your robot marker ID
+TARGET_IDS = {1,2,3,4,5}     # <-- change these to your five target IDs
+MARKER_LENGTH_M = 0.07       # 70 mm marker -> 0.07 m
+
+
 # Load the ArUco Dictionary Dictionary 4x4_50 and set the detection parameters 
 aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50) 
 pa = aruco.DetectorParameters() 
@@ -30,6 +36,24 @@ cv2.namedWindow("aruco-image", cv2.WINDOW_AUTOSIZE)
 
 #Position the windows next to eachother
 cv2.moveWindow("aruco-image",640,100)
+
+# Function to wrap angles to [-pi, pi] ensuring they are comparable
+def wrap_to_pi(angle_rad: float) -> float:
+    """Wrap angle to [-pi, pi]."""
+    return (angle_rad + np.pi) % (2*np.pi) - np.pi
+
+# Function to extract yaw from rotation vector
+def yaw_from_rvec(rvec: np.ndarray) -> float:
+    """
+    Extract yaw (rotation about camera Z axis) from rvec.
+    For a top-down camera, this corresponds well to heading on the floor plane.
+    Returns radians.
+    """
+    R, _ = cv2.Rodrigues(rvec)
+    # yaw for ZYX convention
+    yaw = np.arctan2(R[1, 0], R[0, 0])
+    return yaw
+
 
 # Execute this continuously
 while(True):
@@ -52,6 +76,10 @@ while(True):
     # Draw the detected markers as an overlay on the original frame    
     out = aruco.drawDetectedMarkers(frame, corners, ids)     
 
+    # Initialize dictionaries to hold marker positions and orientations
+    marker_xy = {}
+    marker_yaw = {}
+
     # If there are markers detected, draw the axis for each marker
     if ids is not None:
         # draw axes for each detected marker and log its id and translation vector (tvec)
@@ -59,13 +87,42 @@ while(True):
         for i, marker_id in enumerate(ids.flatten()):
             try:
                 rvec = rvecs[i][0]
-                tvec = tvecs[i][0]
+                tvec = tvecs[i][0]    
+                # Store 2D position on the assumed plane (camera frame X-Y)
+                x, y, z = float(tvec[0]), float(tvec[1]), float(tvec[2])
+                marker_xy[int(marker_id)] = (x, y)
+
+                # Store yaw (heading)
+                marker_yaw[int(marker_id)] = float(yaw_from_rvec(rvec))
+    
             except Exception:
                 # defensive: skip if shapes are unexpected
                 continue
             cv2.drawFrameAxes(out, CM, dist_coef, rvec, tvec, 10)
             # log marker id and translation vector with limited precision
             logging.info("Detected marker id=%d, tvec=%s", int(marker_id), np.array2string(tvec, precision=3, separator=', '))
+
+        if ROBOT_ID in marker_xy:
+            xr, yr = marker_xy[ROBOT_ID]
+            theta_r = marker_yaw.get(ROBOT_ID, 0.0)
+
+            for tid in TARGET_IDS:
+                if tid not in marker_xy:
+                    continue
+
+                xt, yt = marker_xy[tid]
+                dx = xt - xr
+                dy = yt - yr
+
+                distance = float(np.hypot(dx, dy))                 # metres (if MARKER_LENGTH_M is metres)
+                angle_world = float(np.arctan2(dy, dx))            # radians
+                bearing = float(wrap_to_pi(angle_world - theta_r)) # radians, relative to robot heading
+
+                logging.info(
+                    "Robot->Target %d: distance=%.3f m, bearing=%.2f deg (theta_r=%.2f deg)",
+                    tid, distance, np.degrees(bearing), np.degrees(theta_r)
+                )
+
 
     # Apply Canny edge detection to the gray image
     canny = cv2.Canny(gray,100,200) 
