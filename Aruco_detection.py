@@ -16,7 +16,7 @@ dist_coef=Camera['dist_coef']# distortion coefficients from the camera
 # Define the ArUco marker parameters
 ROBOT_ID = 0                 # <-- change this to your robot marker ID
 TARGET_IDS = {1,2,3,4,5}     # <-- change these to your five target IDs
-MARKER_LENGTH_M = 0.07       # 70 mm marker -> 0.07 m
+MARKER_LENGTH_M = 77.5      # marker size in mm
 
 
 # Load the ArUco Dictionary Dictionary 4x4_50 and set the detection parameters 
@@ -28,8 +28,8 @@ pa = aruco.DetectorParameters()
 cap = cv2.VideoCapture(1)
  
 # Set the width and heigth of the camera to 1920x1080
-cap.set(3,1920)
-cap.set(4,1080)
+cap.set(3,500)
+cap.set(4,500)
 
 #Create three opencv named windows
 cv2.namedWindow("aruco-image", cv2.WINDOW_AUTOSIZE)
@@ -72,11 +72,15 @@ while(True):
     # Convert the image from the camera to Gray scale
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
+    # Apply CLAHE to increase contrast for better ArUco detection
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    gray = clahe.apply(gray)
+
     # Detect the markers in the gray image    
     corners, ids, rP = aruco.detectMarkers(gray, aruco_dict) 
 
     # Calculate the pose of the marker based on the Camera calibration
-    rvecs,tvecs,_objPoints = aruco.estimatePoseSingleMarkers(corners,70,CM,dist_coef) 
+    rvecs,tvecs,_objPoints = aruco.estimatePoseSingleMarkers(corners,MARKER_LENGTH_M,CM,dist_coef) 
 
     # Draw the detected markers as an overlay on the original frame    
     out = aruco.drawDetectedMarkers(frame, corners, ids)     
@@ -130,7 +134,7 @@ while(True):
                 bearing = float(wrap_to_pi(angle_world - theta_r)) # radians, relative to robot heading
 
                 logging.info(
-                    "Robot->Target %d: distance=%.3f m, bearing=%.2f deg (theta_r=%.2f deg)",
+                    "Robot->Target %d: distance=%.3f mm, bearing=%.2f deg (theta_r=%.2f deg)",
                     tid, distance, np.degrees(bearing), np.degrees(theta_r)
                 )
 
@@ -151,7 +155,7 @@ while(True):
 
 
     # Apply Canny edge detection to the gray image
-    canny = cv2.Canny(gray,100,200) 
+    #canny = cv2.Canny(gray,100,200) 
     
     # Display the resulting frames in the created windows
 
