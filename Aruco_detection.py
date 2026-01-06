@@ -10,6 +10,23 @@ import logging
 from collections import deque
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
+
+# Function to compute circular mean of angles (avoid error when angles flip between -179 and +180 degrees)
+def circular_mean(angles_rad):
+    """
+    Circular mean of angles (radians).
+    Returns mean angle in [-pi, pi].
+
+    angles_rad: iterable of floats (radians)
+    """
+    angles = np.asarray(list(angles_rad), dtype=float)
+    if angles.size == 0:
+        return 0.0
+    s = np.mean(np.sin(angles))
+    c = np.mean(np.cos(angles))
+    return float(np.arctan2(s, c))
+
+
 Camera=np.load('Calibration.npz') #Load the camera calibration values 
 CM=Camera['CM'] #camera matrix 
 dist_coef=Camera['dist_coef']# distortion coefficients from the camera 
@@ -149,7 +166,7 @@ while(True):
                 # Use averaged values if buffer is full, else current
                 if len(buffers[tid]['dist']) == 20:
                     display_distance = sum(buffers[tid]['dist']) / 20
-                    display_bearing = sum(buffers[tid]['bear']) / 20  # Simple average; for angles, consider circular mean if variations are large
+                    display_bearing = circular_mean(buffers[tid]['bear'])  # Simple average; for angles, consider circular mean if variations are large
                 else:
                     display_distance = distance
                     display_bearing = bearing
