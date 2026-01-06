@@ -72,9 +72,14 @@ while(True):
     # Convert the image from the camera to Gray scale
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
+    # Further adjust contrast and brightness to enhance black-white separation
+    gray = cv2.convertScaleAbs(gray, alpha=1.5, beta=-20)
+
     # Apply CLAHE to increase contrast for better ArUco detection
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(8, 6))
     gray = clahe.apply(gray)
+
+
 
     # Detect the markers in the gray image    
     corners, ids, rP = aruco.detectMarkers(gray, aruco_dict) 
@@ -83,7 +88,7 @@ while(True):
     rvecs,tvecs,_objPoints = aruco.estimatePoseSingleMarkers(corners,MARKER_LENGTH_M,CM,dist_coef) 
 
     # Draw the detected markers as an overlay on the original frame    
-    out = aruco.drawDetectedMarkers(frame, corners, ids)     
+    out = aruco.drawDetectedMarkers(gray, corners, ids)     
 
     # Initialize dictionaries to hold marker positions and orientations
     marker_xy = {}
