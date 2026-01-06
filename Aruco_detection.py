@@ -7,6 +7,7 @@ import time
 # This is the Aruco library from OpenCV
 import cv2.aruco as aruco 
 import logging
+from collections import deque
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
 Camera=np.load('Calibration.npz') #Load the camera calibration values 
@@ -17,6 +18,9 @@ dist_coef=Camera['dist_coef']# distortion coefficients from the camera
 ROBOT_ID = 0                 # <-- change this to your robot marker ID
 TARGET_IDS = {1,2,3,4,5}     # <-- change these to your five target IDs
 MARKER_LENGTH_M = 77.5      # marker size in mm
+
+# Buffers for averaging distance and bearing over last 20 frames
+buffers = {tid: {'dist': deque(maxlen=20), 'bear': deque(maxlen=20)} for tid in TARGET_IDS}
 
 
 # Load the ArUco Dictionary Dictionary 4x4_50 and set the detection parameters 
@@ -73,10 +77,10 @@ while(True):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
     # Further adjust contrast and brightness to enhance black-white separation
-    gray = cv2.convertScaleAbs(gray, alpha=1.5, beta=-20)
+    gray = cv2.convertScaleAbs(gray, alpha=0.7, beta=-50)
 
     # Apply CLAHE to increase contrast for better ArUco detection
-    clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(8, 6))
+    clahe = cv2.createCLAHE(clipLimit=1.3, tileGridSize=(32, 32))
     gray = clahe.apply(gray)
 
 
@@ -138,9 +142,21 @@ while(True):
                 angle_world = float(np.arctan2(dy, dx))            # radians
                 bearing = float(wrap_to_pi(angle_world - theta_r)) # radians, relative to robot heading
 
+                # Append to buffers
+                buffers[tid]['dist'].append(distance)
+                buffers[tid]['bear'].append(bearing)
+
+                # Use averaged values if buffer is full, else current
+                if len(buffers[tid]['dist']) == 20:
+                    display_distance = sum(buffers[tid]['dist']) / 20
+                    display_bearing = sum(buffers[tid]['bear']) / 20  # Simple average; for angles, consider circular mean if variations are large
+                else:
+                    display_distance = distance
+                    display_bearing = bearing
+
                 logging.info(
                     "Robot->Target %d: distance=%.3f mm, bearing=%.2f deg (theta_r=%.2f deg)",
-                    tid, distance, np.degrees(bearing), np.degrees(theta_r)
+                    tid, display_distance, np.degrees(display_bearing), np.degrees(theta_r)
                 )
 
                 # Draw line and text on the output image
@@ -150,7 +166,7 @@ while(True):
                     cv2.line(out, (int(xrp), int(yrp)), (int(xtp), int(ytp)), (255, 255, 255), 2)
                     cv2.putText(
                         out,
-                        f"d={distance:.2f}m b={np.degrees(bearing):.0f}deg",
+                        f"d={display_distance:.2f}m b={np.degrees(display_bearing):.0f}deg",
                         (int(xtp) + 10, int(ytp) - 10),
                         cv2.FONT_HERSHEY_SIMPLEX,
                         0.6,

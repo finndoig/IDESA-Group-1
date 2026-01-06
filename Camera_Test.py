@@ -20,7 +20,7 @@ def nothing(x):
 cv2.createTrackbar("Clip Limit (x10)", "Processed (CLAHE + Contrast/Brightness)", 20, 50, nothing)  # 0-50 -> 0.0-5.0
 cv2.createTrackbar("Tile Size", "Processed (CLAHE + Contrast/Brightness)", 16, 32, nothing)  # 4-32
 cv2.createTrackbar("Alpha (x10)", "Processed (CLAHE + Contrast/Brightness)", 15, 30, nothing)  # 5-30 -> 0.5-3.0
-cv2.createTrackbar("Beta (-50 to 20)", "Processed (CLAHE + Contrast/Brightness)", 70, 70, nothing)  # 0-70 -> -50 to 20
+cv2.createTrackbar("Beta (-100 to 100)", "Processed (CLAHE + Contrast/Brightness)", 120, 200, nothing)  # 0-200 -> -100 to 100
 
 while True:
     ret, frame = cap.read()
@@ -37,7 +37,7 @@ while True:
     if tile_size < 4:
         tile_size = 4  # Minimum
     alpha = cv2.getTrackbarPos("Alpha (x10)", "Processed (CLAHE + Contrast/Brightness)") / 10.0
-    beta = cv2.getTrackbarPos("Beta (-50 to 20)", "Processed (CLAHE + Contrast/Brightness)") - 50
+    beta = cv2.getTrackbarPos("Beta (-100 to 100)", "Processed (CLAHE + Contrast/Brightness)") - 100
 
     # Apply CLAHE with live params
     clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(tile_size, tile_size))
