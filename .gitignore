@@ -1,0 +1,11 @@
+# Ignore Python virtual environment files
+Lib/
+Scripts/
+share/
+workdir/
+
+# Ignore other common files
+*.pyc
+__pycache__/
+*.log
+.DS_Store
