@@ -28,6 +28,8 @@ from vision import VisionAruco
 from homography import HomographyBoard
 from targets import TargetManager, ClickMode
 import overlay
+import planner
+
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 
@@ -305,6 +307,37 @@ def main():
         elif k == ord("u"):
             targets.undo_last_target()
             logging.info("Undid last target.")
+        elif k == ord("p"):
+            # Plan the optimal target order using current robot/home position in WORLD coords
+            if not targets.targets_world:
+                logging.info("No targets to plan.")
+            else:
+                # Choose a start point for planning:
+                # Prefer the live robot position; fallback to home; fallback to first target (last resort).
+                if robot_world is not None:
+                    start_xy = robot_world
+                elif targets.home_world is not None:
+                    start_xy = targets.home_world
+                else:
+                    start_xy = targets.targets_world[0]
+
+                # If home exists, force route to end at home (matches your overlay: last target -> home)
+                end_xy = targets.home_world if targets.home_world is not None else None
+
+                # Compute optimal order and overwrite the target list
+                new_order = planner.plan_optimal_order(
+                    targets=list(targets.targets_world),
+                    start=start_xy,
+                    end=end_xy
+                )
+                targets.targets_world = new_order
+
+                logging.info(
+                    "Planned optimal order (%d targets). End at home=%s.",
+                    len(targets.targets_world),
+                    "YES" if end_xy is not None else "NO"
+                )
+
 
         # Optional: log homography refresh events
         if hom_updated:
