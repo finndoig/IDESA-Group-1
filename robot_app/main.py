@@ -243,6 +243,23 @@ def main():
 
         overlay.draw_targets(out, targets_pix, home_pix=home_pix)
 
+        # Build route: robot -> targets -> home 
+        route_points = []
+
+        if robot_px is not None:
+            route_points.append(robot_px)
+
+        # Targets in list order (updates live as you append/remove)
+        route_points.extend(targets_pix)
+
+        # If home exists, draw final leg back to home
+        if home_pix is not None:
+            route_points.append(home_pix)
+
+        # Draw route lines
+        overlay.draw_route_lines(out, route_points, thickness=2)
+
+
         # Compute distance/bearing to NEXT target (if possible)
         dist_txt = "Next: -"
         if robot_world is not None and robot_theta is not None and targets.targets_world:

@@ -123,3 +123,20 @@ def draw_status(out_bgr, lines, origin=(10, 20), line_gap=22):
         yy = y + i * line_gap
         cv2.putText(out_bgr, text, (x, yy),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+
+# function to draw route lines from robot to targets to home
+def draw_route_lines(out_bgr, points_pix, colour=(255, 255, 255), thickness=2):
+    """
+    Draw a route as connected line segments through a list of pixel points.
+
+    points_pix: list of (x,y) floats or ints, e.g. [robot, t1, t2, ..., home]
+    """
+    if points_pix is None or len(points_pix) < 2:
+        return
+
+    # Convert to integer tuples for OpenCV drawing
+    pts = [(int(x), int(y)) for (x, y) in points_pix]
+
+    # Draw segment-by-segment (easiest to control)
+    for a, b in zip(pts[:-1], pts[1:]):
+        cv2.line(out_bgr, a, b, colour, thickness)
