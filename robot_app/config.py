@@ -63,6 +63,24 @@ BOARD_WORLD_POINTS_M = {
     BOARD_CORNER_IDS["TL"]: (0.0, BOARD_HEIGHT_M),
 }
 
+# --- Corner marker physical size (metres) ---
+# Side length of the printed marker square you are using for the *board corner markers*.
+# Measure the OUTER black square side length in the real world.
+BOARD_CORNER_MARKER_SIZE_M = 0.0775  # e.g. 100mm marker -> 0.10
+
+# ---  per-marker rotation (in 90° steps) ---
+# If all 4 board markers placed with the SAME upright orientation, leave these as 0.
+# If some are rotated on the floor, set to 1/2/3 meaning +90/+180/+270 degrees.
+# This tells us how to rotate the detected corner ordering to match world axes.
+BOARD_CORNER_ROT_K = {
+    BOARD_CORNER_IDS["TL"]: 0,
+    BOARD_CORNER_IDS["TR"]: 0,
+    BOARD_CORNER_IDS["BR"]: 0,
+    BOARD_CORNER_IDS["BL"]: 0,
+}
+
+
+
 # How long we keep using the last homography if the corner markers temporarily disappear
 H_TIMEOUT_S = 1.0
 
