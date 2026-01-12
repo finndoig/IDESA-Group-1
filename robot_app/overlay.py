@@ -140,3 +140,25 @@ def draw_route_lines(out_bgr, points_pix, colour=(255, 255, 255), thickness=2):
     # Draw segment-by-segment (easiest to control)
     for a, b in zip(pts[:-1], pts[1:]):
         cv2.line(out_bgr, a, b, colour, thickness)
+
+# function to draw the ball around the robot aruco marker projected through homography
+def draw_world_circle(out_bgr, H_world_to_pix, centre_world, radius_m,
+                      n_pts=48, colour=(0, 255, 255), thickness=2):
+    """
+    Draw a circle defined in WORLD metres by projecting many points through the homography.
+    This looks correct even with perspective (unlike converting radius to pixels).
+    """
+    if H_world_to_pix is None or centre_world is None:
+        return
+
+    cx, cy = float(centre_world[0]), float(centre_world[1])
+
+    angles = np.linspace(0.0, 2.0*np.pi, n_pts, endpoint=False)
+    pts_world = np.stack([cx + radius_m*np.cos(angles),
+                          cy + radius_m*np.sin(angles)], axis=1).astype(np.float32)
+
+    pts_world = pts_world.reshape(1, -1, 2)  # (1,N,2) for perspectiveTransform
+    pts_pix = cv2.perspectiveTransform(pts_world, H_world_to_pix)[0]  # (N,2)
+
+    cv2.polylines(out_bgr, [pts_pix.astype(int)], True, colour, thickness)
+

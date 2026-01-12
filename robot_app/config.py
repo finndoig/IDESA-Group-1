@@ -51,7 +51,7 @@ BOARD_CORNER_IDS = {
 # These are the real-world distances between the *marker centres*, not the paper edges.
 # If you define the world points as marker-centres, measure the marker-centre spacing.
 BOARD_WIDTH_M = 0.5
-BOARD_HEIGHT_M = 0.5
+BOARD_HEIGHT_M = 0.6
 
 # World coordinates for each corner marker centre (metres).
 # Coordinate convention:
@@ -89,6 +89,13 @@ H_TIMEOUT_S = 1.0
 # -----------------------------
 GRID_STEP_M = 0.10        # 10 cm grid
 GRID_MAJOR_EVERY = 5      # thicker line every 5 steps (50 cm)
+
+# Robot capture ring (ball is 200mm diameter)
+ROBOT_CAPTURE_RADIUS_M = 0.10   # metres (200mm diameter => 100mm radius)
+
+# Optional: add a little tolerance so it doesn't "miss" due to jitter
+CAPTURE_TOL_M = 0.01            # 1cm tolerance (tweak or set 0.0)
+
 
 # -----------------------------
 # Pre-processing tuning

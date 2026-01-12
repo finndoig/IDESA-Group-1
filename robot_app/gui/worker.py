@@ -196,7 +196,36 @@ class VisionWorker(QtCore.QThread):
 
             # Robot pose
             robot_world, robot_px, robot_theta = self._robot_pose_from_marker(det["marker_px"], det["marker_corners_px"])
+            
+            # capture/remove targets when robot is within the ball radius ---
+            removed_count = 0
+            if robot_world is not None and self.targets.targets_world:
+                rx, ry = robot_world
+                thresh = config.ROBOT_CAPTURE_RADIUS_M + config.CAPTURE_TOL_M
+
+                before = len(self.targets.targets_world)
+                self.targets.targets_world = [
+                    (tx, ty) for (tx, ty) in self.targets.targets_world
+                    if np.hypot(tx - rx, ty - ry) > thresh
+                ]
+                removed_count = before - len(self.targets.targets_world)
+
+            # draw robot arrow/heading
             overlay.draw_robot_pose(out, robot_px, robot_theta)
+
+            # draw the 200mm capture ring in world space ---
+            if self.board.valid() and robot_world is not None:
+                overlay.draw_world_circle(
+                    out,
+                    self.board.H_world_to_pix,
+                    centre_world=robot_world,
+                    radius_m=config.ROBOT_CAPTURE_RADIUS_M,
+                    colour=(0, 255, 255),
+                    thickness=2
+                )
+            
+
+
 
             # Convert targets/home to pixels for drawing
             home_pix = None
@@ -246,6 +275,7 @@ class VisionWorker(QtCore.QThread):
                 "next_info": next_info,
                 "home_set": self.targets.home_world is not None,
                 "targets_world": list(self.targets.targets_world),
+                "removed_count": removed_count,
             }
             self.status_ready.emit(status)
 
